@@ -89,28 +89,33 @@ class MenuController extends Controller
      */
 
      public function getMenuItems()
-     {
-         // Single query to get all menu items
-         $allItems = \App\Models\MenuItem::orderBy('parent_id')->orderBy('id')->get();
-     
-         // Build tree in PHP
-         $itemsByParent = [];
-         foreach ($allItems as $item) {
-             $itemsByParent[$item->parent_id ?? 0][] = $item;
-         }
-     
-         $buildTree = function($parentId = null) use (&$buildTree, $itemsByParent) {
-             $result = [];
-             if (isset($itemsByParent[$parentId])) {
-                 foreach ($itemsByParent[$parentId] as $item) {
-                     $itemArray = $item->toArray();
-                     $itemArray['children'] = $buildTree($item->id);
-                     $result[] = $itemArray;
-                 }
-             }
-             return $result;
-         };
-     
-         return $buildTree(null);
-     }
+{
+    // Single query to get all menu items
+    $allItems = \App\Models\MenuItem::orderBy('parent_id')->orderBy('id')->get();
+    
+    // Build tree in PHP
+    $itemsByParent = [];
+    foreach ($allItems as $item) {
+        // Use parent_id as key (0 for root items)
+        $parentKey = $item->parent_id ?? 0;
+        $itemsByParent[$parentKey][] = $item;
+    }
+    
+    // Recursive function to build tree
+    $buildTree = function($parentId = 0) use (&$buildTree, $itemsByParent) {
+        $result = [];
+        
+        if (isset($itemsByParent[$parentId])) {
+            foreach ($itemsByParent[$parentId] as $item) {
+                $itemArray = $item->toArray();
+                $itemArray['children'] = $buildTree($item->id);
+                $result[] = $itemArray;
+            }
+        }
+        
+        return $result;
+    };
+    
+    return $buildTree(0); // Start with parent_id = 0
+}
 }
