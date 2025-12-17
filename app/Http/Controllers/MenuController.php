@@ -88,8 +88,29 @@ class MenuController extends Controller
     ]
      */
 
-    public function getMenuItems()
-    {
-        throw new \Exception('Implement task#3');
-    }
+     public function getMenuItems()
+     {
+         // Single query to get all menu items
+         $allItems = \App\Models\MenuItem::orderBy('parent_id')->orderBy('id')->get();
+     
+         // Build tree in PHP
+         $itemsByParent = [];
+         foreach ($allItems as $item) {
+             $itemsByParent[$item->parent_id ?? 0][] = $item;
+         }
+     
+         $buildTree = function($parentId = null) use (&$buildTree, $itemsByParent) {
+             $result = [];
+             if (isset($itemsByParent[$parentId])) {
+                 foreach ($itemsByParent[$parentId] as $item) {
+                     $itemArray = $item->toArray();
+                     $itemArray['children'] = $buildTree($item->id);
+                     $result[] = $itemArray;
+                 }
+             }
+             return $result;
+         };
+     
+         return $buildTree(null);
+     }
 }
