@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use Illuminate\Support\Facades\DB;
 
 class EventController extends Controller
 {
@@ -98,7 +99,7 @@ class EventController extends Controller
 
     public function getEventsWithWorkshops()
     {
-        throw new \Exception('Implement task#1');
+        return Event::with('workshops')->get();
     }
 
     /* TODO: complete getFutureEventWithWorkshops so that it returns events with workshops, that have not yet started
@@ -174,8 +175,23 @@ class EventController extends Controller
     ```
      */
 
-    public function getFutureEventsWithWorkshops()
-    {
-        throw new \Exception('Implement task#2');
-    }
+     public function getFutureEventsWithWorkshops()
+     {
+         // Query 1: Get event IDs with future workshops
+         $futureEventIds = DB::table('workshops')
+             ->select('event_id')
+             ->groupBy('event_id')
+             ->havingRaw('MIN(start) > ?', [now()])
+             ->pluck('event_id');
+         
+         // If no future events, return empty collection
+         if ($futureEventIds->isEmpty()) {
+             return collect([]);
+         }
+         
+         // Query 2 & 3: Load events with workshops (eager loading makes 2 queries)
+         return Event::with('workshops')
+             ->whereIn('id', $futureEventIds)
+             ->get();
+     }
 }
